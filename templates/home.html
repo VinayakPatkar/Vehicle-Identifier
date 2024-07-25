@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload and Crop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        #image {
+            max-width: 100%;
+        }
+        .preview {
+            overflow: hidden;
+            width: 160px;
+            height: 160px;
+            margin: 10px;
+            border: 1px solid red;
+        }
+    </style>
+</head>
+<body>
+    <form id="upload-form">
+        <input type="file" id="inputImage" accept="image/*">
+        <div>
+            <img id="image" src="">
+        </div>
+        <button type="button" id="cropButton">Crop</button>
+        <div class="preview"></div>
+        <button type="submit">Upload</button>
+        <input type="hidden" name="croppedImage" id="croppedImage">
+    </form>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script>
+        let cropper;
+        const image = document.getElementById('image');
+        const inputImage = document.getElementById('inputImage');
+        const croppedImageInput = document.getElementById('croppedImage');
+        const cropButton = document.getElementById('cropButton');
+        const preview = document.querySelector('.preview');
+
+        inputImage.addEventListener('change', (e) => {
+            const files = e.target.files;
+            const done = (url) => {
+                inputImage.value = '';
+                image.src = url;
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    preview: preview,
+                });
+            };
+            let reader;
+            let file;
+            if (files && files.length > 0) {
+                file = files[0];
+                if (URL) {
+                    done(URL.createObjectURL(file));
+                } else if (FileReader) {
+                    reader = new FileReader();
+                    reader.onload = () => {
+                        done(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        cropButton.addEventListener('click', () => {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas();
+                croppedImageInput.value = canvas.toDataURL('image/jpeg');
+            }
+        });
+
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('image', croppedImageInput.value);
+
+            fetch("http://127.0.0.1:5000/upload", {
+                method: "POST",
+                body: formData,
+            }).then(response => response.json()).then(data => {
+                console.log(data);
+                // handle success
+            }).catch(error => {
+                console.error(error);
+                // handle error
+            });
+        });
+    </script>
+</body>
+</html>
